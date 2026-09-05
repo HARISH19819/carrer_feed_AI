@@ -1,0 +1,33 @@
+name: Scheduled Job Ingestion Pipeline
+
+on:
+  schedule:
+    # Run twice daily at 00:00 and 12:00 UTC (safe free tier frequency)
+    - cron: '0 0,12 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install pydantic-settings
+
+      - name: Execute Autonomous Pipeline
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DATABASE_NAME: jobfusion
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          python backend/scripts/run_pipeline.py
