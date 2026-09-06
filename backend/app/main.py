@@ -93,8 +93,20 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "An unexpected server error occurred. Please try again later."}
     )
 
-# Health endpoint
+# Root welcome endpoint so opening the URL in browser works immediately
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "status": "online",
+        "app": settings.APP_NAME,
+        "message": "Career Feed AI Backend API is live and running successfully!",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+# Health endpoints (supporting both /health and Render default /healthz)
 @app.get("/health", tags=["Health"])
+@app.get("/healthz", tags=["Health"])
 async def health():
     return {
         "status": "ok",
