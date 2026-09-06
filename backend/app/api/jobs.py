@@ -73,18 +73,30 @@ async def list_jobs(
             {"domain": {"$regex": search_terms, "$options": "i"}}
         ]
 
-    total = await db.jobs.count_documents(filter_query)
-    skip = (page - 1) * page_size
+    items = []
+    total = 0
+    total_pages = 1
+    
+    try:
+        if db is not None:
+            total = await db.jobs.count_documents(filter_query)
+            skip = (page - 1) * page_size
 
-    sort_order = [("posted_at", -1)]
-    if sort_by == "title":
-        sort_order = [("title", 1)]
+            sort_order = [("posted_at", -1)]
+            if sort_by == "title":
+                sort_order = [("title", 1)]
 
-    cursor = db.jobs.find(filter_query).sort(sort_order).skip(skip).limit(page_size)
-    raw_jobs = await cursor.to_list(length=page_size)
-
-    items = [serialize_job(j) for j in raw_jobs]
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+            cursor = db.jobs.find(filter_query).sort(sort_order).skip(skip).limit(page_size)
+            raw_jobs = await cursor.to_list(length=page_size)
+            items = [serialize_job(j) for j in raw_jobs]
+            total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+    except Exception as e:
+        from app.core.logging import logger
+        logger.warning(f"Database query error in list_jobs: {e}")
+        # Graceful fallback: return empty list or freshly fetched jobs without crashing
+        items = []
+        total = 0
+        total_pages = 1
 
     return JobListResponse(
         items=items,
