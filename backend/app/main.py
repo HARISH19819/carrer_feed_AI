@@ -70,19 +70,28 @@ app.add_middleware(
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
 
+# CORS headers for exception responses
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*",
+}
+
 # Exception handlers
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail}
+        content={"detail": exc.detail},
+        headers=CORS_HEADERS
     )
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": "Request validation failed", "errors": exc.errors()}
+        content={"detail": "Request validation failed", "errors": exc.errors()},
+        headers=CORS_HEADERS
     )
 
 @app.exception_handler(Exception)
@@ -90,7 +99,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled server error at {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "An unexpected server error occurred. Please try again later."}
+        content={"detail": "An unexpected server error occurred. Please try again later."},
+        headers=CORS_HEADERS
     )
 
 # Root welcome endpoint so opening the URL in browser works immediately
